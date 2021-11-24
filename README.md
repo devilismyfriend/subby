@@ -24,7 +24,7 @@ Subby will then find out if the file has PGS/ASS/VOBSUB and if they exist while 
 
 "python3 main.py "D:/movie.mkv""
 
-This will process whichever file your pointing it to, extracting subtitles if there's no existing SRT files
+This will process whichever file you're pointing it to, extracting subtitles if there's no existing SRT files present.
 
 
 
