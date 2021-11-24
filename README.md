@@ -1,5 +1,5 @@
 # subby
- Extract PGS/VOBSUB/ASS Embedded Subtitles from video
+ Extract PGS/VOBSUB/ASS Embedded Subtitles from video to SRT
 
 REQUIREMNETS:
 
