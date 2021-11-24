@@ -2,6 +2,7 @@
  Extract Embedded Subtitles
 
 REQUIREMNETS:
+
 Install Tesseract OCR 5.0 and additional languages
 
 Install Java runtime
