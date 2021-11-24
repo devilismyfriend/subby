@@ -60,7 +60,6 @@ sniffio==1.2.0
 sortedcontainers==2.4.0
 soupsieve==2.2.1
 stevedore==3.4.0
-telegram-send==0.25
 tendo==0.2.15
 tornado==6.1
 tqdm==4.62.3
