@@ -35,3 +35,11 @@ notifyPlex - if true, after the plex scan and subtitle extraction subby will sen
 only4k - Plex scan will collect only 4k items for processing.
 
 exportEmbeddedSRTs - if embedded subs are SRTs, this flag will tell subby to extract it.
+
+
+This tool uses:
+MKVTOOLNIX
+BDSUB2SUP
+ASSTOSRT
+Imagemaker
+pgsreader
