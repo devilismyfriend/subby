@@ -41,9 +41,12 @@ def start_subtitle_extraction(file_path,tesseract_path,export_Esrt,wantedLangs,m
         
         # get all DisplaySets that contain an image
         print(bcolors.WARNING + "    Loading DisplaySets..." + bcolors.ENDC)
-
-        allsets = [ds for ds in tqdm(pgs.iter_displaysets())]
-
+        try:
+            allsets = [ds for ds in tqdm(pgs.iter_displaysets())]
+        except Exception as e:
+            print(bcolors.FAIL + "    Error: Loading DisplaySets failed!, moving on" + bcolors.ENDC)
+            return None
+        
         print(bcolors.WARNING + f"    Running OCR on {len(allsets)} DisplaySets and building SRT file..." + bcolors.ENDC)
 
         subText = ""
@@ -200,6 +203,14 @@ def start_subtitle_extraction(file_path,tesseract_path,export_Esrt,wantedLangs,m
                         srt.save(srtFile, encoding='utf-8')
                         #delete sup file
                         print(bcolors.WARNING + "    Deleting SUP file..." + bcolors.ENDC)
+                        if type == "vob":
+                            try:
+                                os.remove(filePath.replace(".mkv", replaceExtensionVOB))
+                                sub = filePath.replace(".mkv", replaceExtensionVOB).replace(".idx", ".sub")
+                                #os.remove(filePath.replace(".mkv", replaceExtensionVOB))
+                                os.remove(filePath.replace(".mkv", sub))
+                            except Exception as e:
+                                print(bcolors.FAIL + "    Error deleting VOBSUB file: {}".format(e) + bcolors.ENDC)   
                         os.remove(filePath.replace(".mkv", replaceExtensionSup))
                         print(bcolors.OKGREEN + "    SRT extracted!" + bcolors.ENDC)
                         return True
