@@ -106,7 +106,7 @@ def start_subtitle_extraction(file_path,tesseract_path,export_Esrt,wantedLangs,m
             return sub
         return sub
 
-    def extract_mkv_subs(filePath,trackID,lang,forced=False,SDH=False,type="pgs"):        
+    def extract_mkv_subs(filePath,trackID,lang,default=False,forced=False,SDH=False,type="pgs"):        
         if lang in pytesseract.get_languages(config=''):
             if forced == True:
                 replaceExtensionSup = '.' + lang + '.forced.sup'
@@ -114,6 +114,9 @@ def start_subtitle_extraction(file_path,tesseract_path,export_Esrt,wantedLangs,m
             if SDH == True:
                 replaceExtensionSup = '.' + lang + '.SDH.sup'
                 replaceExtensionSrt = '.' + lang + '.SDH.srt'
+            if default == True:
+                replaceExtensionSup = '.' + lang + '.default.sup'
+                replaceExtensionSrt = '.' + lang + '.default.srt'
             else:
                 replaceExtensionSup = '.' + lang + '.sup'
                 replaceExtensionSrt = '.' + lang + '.srt'
@@ -208,7 +211,7 @@ def start_subtitle_extraction(file_path,tesseract_path,export_Esrt,wantedLangs,m
                                 os.remove(filePath.replace(".mkv", replaceExtensionVOB))
                                 sub = filePath.replace(".mkv", replaceExtensionVOB).replace(".idx", ".sub")
                                 #os.remove(filePath.replace(".mkv", replaceExtensionVOB))
-                                os.remove(filePath.replace(".mkv", sub))
+                                os.remove(sub)
                             except Exception as e:
                                 print(bcolors.FAIL + "    Error deleting VOBSUB file: {}".format(e) + bcolors.ENDC)   
                         os.remove(filePath.replace(".mkv", replaceExtensionSup))
@@ -243,7 +246,6 @@ def start_subtitle_extraction(file_path,tesseract_path,export_Esrt,wantedLangs,m
     cmd = mkvToolsPath + 'mkvmerge -i ' + '"{}"'.format(file_path) +' -F json'
     
     data = getProcessOutput(cmd)
-
     if data:
         #print(data)
         found = False
@@ -254,51 +256,67 @@ def start_subtitle_extraction(file_path,tesseract_path,export_Esrt,wantedLangs,m
                 found = True
                 if 'pgs' in track['codec'].lower() or 'vobsub' in track['codec'].lower() or 'srt' in track['codec'].lower() or 'SubStationAlpha' in track['codec']:
                     trackID = track['id']
+                    #print(trackID)
                     lang = track['properties']['language']
                     if lang in wantedSubs or wantedSubs == 'all':
                         if 'track_name' in track['properties'].keys():
                             name = track['properties']['track_name']
                         else:
                             name = 'vobsub'
-                        if 'forced' in name.lower():
+                        #print(track.keys())
+                        if 'default_track' in track['properties'].keys():
+                            if track['properties']['default_track'] == True and 'forced' not in name.lower() and track['properties']['forced_track'] == False:
+                                if 'pgs' in track['codec'].lower():
+                                    print(bcolors.OKGREEN + "    Found {} PGS Default".format(lang.capitalize()) + bcolors.ENDC)
+                                    status = extract_mkv_subs(file_path,trackID,lang,default=True,forced=False,SDH=False,type='pgs')
+                                if 'vobsub' in track['codec'].lower():
+                                    print(bcolors.OKGREEN + "    Found {} VOBSUB Default".format(lang.capitalize()) + bcolors.ENDC)
+                                    status = extract_mkv_subs(file_path,trackID,lang,default=True,forced=False,SDH=False,type='vob')
+                                if 'srt' in track['codec'].lower():
+                                    print(bcolors.OKGREEN + "    Found {} SRT Default".format(lang.capitalize()) + bcolors.ENDC)
+                                    status = extract_mkv_subs(file_path,trackID,lang,default=True,forced=False,SDH=False,type='srt')
+                                if 'SubStationAlpha' in track['codec']:
+                                    print(bcolors.OKGREEN + "    Found {} ASS Default".format(lang.capitalize()) + bcolors.ENDC)
+                                    status = extract_mkv_subs(file_path,trackID,lang,default=True,forced=False,SDH=False,type='ass')
+                        elif 'forced' in name.lower() and track['properties']['default_track'] == False:
                             if 'pgs' in track['codec'].lower():
                                 print(bcolors.OKGREEN + "    Found {} PGS Forced".format(lang.capitalize()) + bcolors.ENDC)
-                                status = extract_mkv_subs(file_path,trackID,lang,forced=True,SDH=False,type='pgs')
+                                status = extract_mkv_subs(file_path,trackID,lang,default=False,forced=True,SDH=False,type='pgs')
                             if 'vobsub' in track['codec'].lower():
                                 print(bcolors.OKGREEN + "    Found {} VOBSUB Forced".format(lang.capitalize()) + bcolors.ENDC)
-                                status = extract_mkv_subs(file_path,trackID,lang,forced=True,SDH=False,type='vob')
+                                status = extract_mkv_subs(file_path,trackID,lang,default=False,forced=True,SDH=False,type='vob')
                             if 'srt' in track['codec'].lower():
                                 print(bcolors.OKGREEN + "    Found {} SRT Forced".format(lang.capitalize()) + bcolors.ENDC)
-                                status = extract_mkv_subs(file_path,trackID,lang,forced=True,SDH=False,type='srt')
+                                status = extract_mkv_subs(file_path,trackID,lang,default=False,forced=True,SDH=False,type='srt')
                             if 'SubStationAlpha' in track['codec']:
-                                print(bcolors.OKGREEN + "    Found {} SRT Forced".format(lang.capitalize()) + bcolors.ENDC)
-                                status = extract_mkv_subs(file_path,trackID,lang,forced=True,SDH=False,type='ass')
-                        elif 'sdh' in name.lower():
+                                print(bcolors.OKGREEN + "    Found {} ASS Forced".format(lang.capitalize()) + bcolors.ENDC)
+                                status = extract_mkv_subs(file_path,trackID,lang,default=False,forced=True,SDH=False,type='ass')
+                        elif 'sdh' in name.lower() and track['properties']['default_track'] == False:
                             if 'pgs' in track['codec'].lower():
                                 print(bcolors.OKGREEN + "    Found {}(SDH) PGS ".format(lang.capitalize()) + bcolors.ENDC)
-                                status = extract_mkv_subs(file_path,trackID,lang,forced=False,SDH=True,type='pgs')
+                                status = extract_mkv_subs(file_path,trackID,lang,default=False,forced=False,SDH=True,type='pgs')
                             if 'vobsub' in track['codec'].lower():
                                 print(bcolors.OKGREEN + "    Found {}(SDH) VOBSUB".format(lang.capitalize()) + bcolors.ENDC)
-                                status = extract_mkv_subs(file_path,trackID,lang,forced=False,SDH=True,type='vob')
+                                status = extract_mkv_subs(file_path,trackID,lang,default=False,forced=False,SDH=True,type='vob')
                             if 'srt' in track['codec'].lower():
                                 print(bcolors.OKGREEN + "    Found {}(SDH) SRT".format(lang.capitalize()) + bcolors.ENDC)
-                                status = extract_mkv_subs(file_path,trackID,lang,forced=False,SDH=True,type='srt')
+                                status = extract_mkv_subs(file_path,trackID,lang,default=False,forced=False,SDH=True,type='srt')
                             if 'SubStationAlpha' in track['codec']:
-                                print(bcolors.OKGREEN + "    Found {} SRT Forced".format(lang.capitalize()) + bcolors.ENDC)
-                                status = extract_mkv_subs(file_path,trackID,lang,forced=False,SDH=True,type='ass')
+                                print(bcolors.OKGREEN + "    Found {} ASS".format(lang.capitalize()) + bcolors.ENDC)
+                                status = extract_mkv_subs(file_path,trackID,lang,default=False,forced=False,SDH=True,type='ass')
                         else:
                             if 'pgs' in track['codec'].lower():
                                 print(bcolors.OKGREEN + "    Found {} PGS".format(lang.capitalize()) + bcolors.ENDC)
-                                status = extract_mkv_subs(file_path,trackID,lang,forced=False,SDH=False,type='pgs')
+                                status = extract_mkv_subs(file_path,trackID,lang,default=False,forced=False,SDH=False,type='pgs')
                             if 'vobsub' in track['codec'].lower():
                                 print(bcolors.OKGREEN + "    Found {} VOBSUB".format(lang.capitalize()) + bcolors.ENDC)
-                                status = extract_mkv_subs(file_path,trackID,lang,forced=False,SDH=False,type='vob')
+                                status = extract_mkv_subs(file_path,trackID,lang,default=False,forced=False,SDH=False,type='vob')
                             if 'srt' in track['codec'].lower():
                                 print(bcolors.OKGREEN + "    Found {} SRT".format(lang.capitalize()) + bcolors.ENDC)
-                                status = extract_mkv_subs(file_path,trackID,lang,forced=False,SDH=False,type='srt')
+                                status = extract_mkv_subs(file_path,trackID,lang,default=False,forced=False,SDH=False,type='srt')
                             if 'SubStationAlpha' in track['codec']:
-                                print(bcolors.OKGREEN + "    Found {} SRT Forced".format(lang.capitalize()) + bcolors.ENDC)
-                                status = extract_mkv_subs(file_path,trackID,lang,forced=False,SDH=False,type='ass')
+                                print(bcolors.OKGREEN + "    Found {} ASS".format(lang.capitalize()) + bcolors.ENDC)
+                                status = extract_mkv_subs(file_path,trackID,lang,default=False,forced=False,SDH=False,type='ass')
                     else:
                         print(bcolors.WARNING + "    Skipping language {} due to preference".format(lang.capitalize()) + bcolors.ENDC)  
                 else:
