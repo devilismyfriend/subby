@@ -25,6 +25,7 @@ def find_content(server, section, plexPath, localPath,only4K):
         allMedia = server.library.section(section).search(resolution='4k')
         #print(allMedia)
     for item in tqdm(range(len(allMedia))):
+        #print(allMedia[item])
         #
         item = allMedia[item-1]
         
@@ -41,12 +42,15 @@ def find_content(server, section, plexPath, localPath,only4K):
                         #print('Found subtitles on ' + item.title)
                         #print(media.parts[0].file.replace(plexPath,localPath))
                         #check if file exists
-                        if os.path.isfile(media.parts[0].file.replace(plexPath,localPath)):
-                            collection.append(media.parts[0].file.replace(plexPath,localPath))
-                        else:
-                            #print('Could not find file, make sure you used the correct local path or media path, or clean plex database')
-                            #print(media.parts[0].file.replace(plexPath,localPath))
-                            continue
+                        lower = [str(x).lower() for x in part.subtitleStreams()]
+                        if 'srt' not in lower or 'subrip' not in lower:
+                            if os.path.isfile(media.parts[0].file.replace(plexPath,localPath)):
+                                #print('Found subtitle file on ' + item.title)
+                                collection.append(media.parts[0].file.replace(plexPath,localPath))
+                            else:
+                                #print('Could not find file, make sure you used the correct local path or media path, or clean plex database')
+                                #print(media.parts[0].file.replace(plexPath,localPath))
+                                continue
         #check if item is a show
         if item.type == 'show':
             for episode in item.episodes():
@@ -55,13 +59,15 @@ def find_content(server, section, plexPath, localPath,only4K):
                 for media in episode.media:
                     for part in media.parts:
                         #check if part has subtitles
-                        if len(part.subtitleStreams()) > 0:
-                            #print('Found subtitles on ' + item.title + ' : ' + str(episode.seasonNumber) + 'x' + str(episode.index))
-                            if os.path.isfile(media.parts[0].file.replace(plexPath,localPath)):
-                                collection.append(media.parts[0].file.replace(plexPath,localPath))
-                            else:
-                                #print('Could not find file, make sure you used the correct local path or media path, or clean plex database')
-                                continue
+                        lower = [str(x).lower() for x in part.subtitleStreams()]
+                        if 'srt' not in lower or 'subrip' not in lower:
+                            if len(part.subtitleStreams()) > 0:
+                                print('Found subtitles on ' + item.title + ' : ' + str(episode.seasonNumber) + 'x' + str(episode.index))
+                                if os.path.isfile(media.parts[0].file.replace(plexPath,localPath)):
+                                    collection.append(media.parts[0].file.replace(plexPath,localPath))
+                                else:
+                                    print('Could not find file, make sure you used the correct local path or media path, or clean plex database')
+                                    continue
     return collection              
 
 def startScan(serverIP,port, serverToken,plexPath,localPath,only4K,library):
