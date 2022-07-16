@@ -6,7 +6,31 @@ from lib.python.subby import start_subtitle_extraction
 from lib.python.plexScanner import startScan
 from lib.python.plexScanner import getPlexSectionID
 import subprocess
+import logging
+from logging import config
 
+log_config = {
+    "version":1,
+    "root":{
+        "handlers" : ["console"],
+        "level": "INFO"
+    },
+    "handlers":{
+        "console":{
+            "formatter": "std_out",
+            "class": "logging.StreamHandler",
+            "level": "INFO"
+        }
+    },
+    "formatters":{
+        "std_out": {
+            "format": "%(asctime)s : %(levelname)s : %(module)s : %(funcName)s : %(lineno)d : (Process Details : (%(process)d, %(processName)s), Thread Details : (%(thread)d, %(threadName)s))\nLog : %(message)s",
+            "datefmt":"%d-%m-%Y %I:%M:%S"
+        }
+    },
+}
+
+config.dictConfig(log_config)
 class bcolors:
         HEADER = '\033[95m'
         OKBLUE = '\033[94m'
@@ -36,7 +60,7 @@ class Main:
             config.read(self.script_path + '/config.ini')
 
             #--- SETUP ---
-            print(bcolors.FAIL + "Loading Configs" + bcolors.ENDC)
+            logging.debug(bcolors.FAIL + "Loading Configs" + bcolors.ENDC)
 
             #plex variables
             self.plex_host = config['plex']['serverAddress']
@@ -64,13 +88,13 @@ class Main:
                     self.plex_sep = 'win'
             
             self.plex_notify = self.str_to_bool(config['plex']['notifyPlex'].capitalize())
-            print(bcolors.OKGREEN + 'Plex config loaded!' + bcolors.ENDC)
+            logging.info(bcolors.OKGREEN + 'Plex config loaded!' + bcolors.ENDC)
 
             #subby variables
             self.tesseract_path = config['subby']['pathToTesseractEXE']
             self.export_srt = self.str_to_bool(config['subby']['exportEmbeddedSRTs'].capitalize())
-            
-            print(bcolors.OKGREEN + 'Subby config loaded!' + bcolors.ENDC)
+
+            logging.debug(bcolors.OKGREEN + 'Subby config loaded!' + bcolors.ENDC)
 
             #get wanted languages
             self.wanted_languages = config['subby']['wantedLanguages']
@@ -86,7 +110,11 @@ class Main:
                         self.wanted_languages[index] = lang[:-1]
             
             #set local bin paths
-            self.mkvToolsPath = self.script_path + '/lib/bin/mkvtools/'
+            if os.name == 'nt':
+                self.mkvToolsPath = self.script_path + '/lib/bin/mkvtools/'
+            else:
+                logging.info("Linux system, make sure to install mkvtoolnix and bins are in /usr/bin/")
+                self.mkvToolsPath = '/usr/bin/'
 
             #set local java paths
             self.BDSup2SubPath = self.script_path + '/lib/java/BDSup2Sub.jar'
@@ -96,8 +124,10 @@ class Main:
             #check the command line arguments
             print(self.logo)
             if len(sys.argv) > 1:
+                if '-v' in sys.argv or '--verbose' in sys.argv:
+                    self.set_debug_level()
                 if sys.argv[1] == '--plex':
-                    #print(bcolors.WARNING + 'Scanning Plex for items with subtitles, please wait.' + bcolors.ENDC)
+                    logging.debug(bcolors.WARNING + 'Scanning Plex for items with subtitles, please wait.' + bcolors.ENDC)
                     for library in self.plex_libraries:
                         if self.plex_notify == True:
                             collectExtracts = []
@@ -128,17 +158,24 @@ class Main:
                                 time.sleep(3)
                                 self.notify_plex(i)
                         else:
-                            print(bcolors.OKGREEN + '    No extractions made' + bcolors.ENDC)
+                            logging.info(bcolors.OKGREEN + 'No extractions made' + bcolors.ENDC)
                 else:
                     start_subtitle_extraction(sys.argv[1],self.tesseract_path, self.export_srt, self.wanted_languages, self.mkvToolsPath, self.BDSup2SubPath)
             else:
-                print(bcolors.WARNING + '    No arguments given, use --plex to toggle plex scan or give a path to a file to process, ex: "D:/blahblah.mkv"' + bcolors.ENDC)
-    
+                logging.info(bcolors.WARNING + 'No arguments given, use --plex to toggle plex scan or give a path to a file to process, ex: "D:/blahblah.mkv"' + bcolors.ENDC)
+
+    def set_debug_level(self):
+        level = logging.DEBUG
+        logger = logging.getLogger()
+        logger.setLevel(level)
+        for handler in logger.handlers:
+            handler.setLevel(level)
+
     def notify_plex(self,plexFilePath):
         
         curlUrl = 'http://{}/library/sections/{}/refresh?path={}&X-Plex-Token={}'.format(self.plex_host+':'+self.plex_port,self.sectionID,plexFilePath,self.plex_token).replace(' ','%20')
         cmd = "curl \"{}""\"".format(curlUrl)
-        print(bcolors.WARNING + '    Notifying Plex of changes, curl command is: {}'.format(cmd) + bcolors.ENDC)
+        logging.info(bcolors.WARNING + 'Notifying Plex of changes, curl command is: {}'.format(cmd) + bcolors.ENDC)
         process = subprocess.Popen(
             cmd,
             shell=True,
@@ -148,7 +185,7 @@ class Main:
         if process.returncode == 0:
             return data.decode('utf-8')
         else:
-            print("Error:", err)
+            logging.error("Error:", err)
             return ""
 
     def plex_scan(self,library):
