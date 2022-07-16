@@ -5,6 +5,8 @@ import os
 import subprocess
 import json
 import pytesseract
+from langcodes import Language
+
 from .pgsreader import PGSReader
 from .imagemaker import make_image
 from PIL import Image
@@ -27,6 +29,14 @@ class bcolors:
     ENDC = '\033[0m'
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
+
+
+def language_is_supported(lang):
+    for tesseract_lang in pytesseract.get_languages(config=''):
+        if Language.get(tesseract_lang) == Language.get(lang):
+            return tesseract_lang
+    return False
+
 
 def start_subtitle_extraction(file_path,tesseract_path,export_Esrt,wantedLangs,mkvToolsPath,BDSup2Path):
     pytesseract.pytesser    = fr'{tesseract_path}'
@@ -108,7 +118,8 @@ def start_subtitle_extraction(file_path,tesseract_path,export_Esrt,wantedLangs,m
         return sub
 
     def extract_mkv_subs(filePath,trackID,lang,default=False,forced=False,SDH=False,type="pgs"):
-        if lang in pytesseract.get_languages(config=''):
+        tesseract_lang = language_is_supported(lang)
+        if tesseract_lang:
             if forced == True:
                 replaceExtensionSup = '.' + lang + '.forced.sup'
                 replaceExtensionSrt = '.' + lang + '.forced.srt'
@@ -189,7 +200,7 @@ def start_subtitle_extraction(file_path,tesseract_path,export_Esrt,wantedLangs,m
                             logging.warning(bcolors.FAIL + "No VOBSUB file found. Skipping, Path may have bad characters" + bcolors.ENDC)
                             return None
                     logging.info(bcolors.WARNING + "Running OCR..." + bcolors.ENDC)
-                    OCR = OCRprocessor(filePath.replace(".mkv", replaceExtensionSup),filePath.replace(".mkv", replaceExtensionSrt),lang)
+                    OCR = OCRprocessor(filePath.replace(".mkv", replaceExtensionSup),filePath.replace(".mkv", replaceExtensionSrt),tesseract_lang)
                     logging.info(bcolors.WARNING + "Converting to SRT..." + bcolors.ENDC)
                     if OCR != None:
                         srtFile = OCR[1]
