@@ -110,7 +110,11 @@ class Main:
                         self.wanted_languages[index] = lang[:-1]
             
             #set local bin paths
-            self.mkvToolsPath = self.script_path + '/lib/bin/mkvtools/'
+            if os.name == 'nt':
+                self.mkvToolsPath = self.script_path + '/lib/bin/mkvtools/'
+            else:
+                logging.info("Linux system, make sure to install mkvtoolnix and bins are in /usr/bin/")
+                self.mkvToolsPath = '/usr/bin/'
 
             #set local java paths
             self.BDSup2SubPath = self.script_path + '/lib/java/BDSup2Sub.jar'
